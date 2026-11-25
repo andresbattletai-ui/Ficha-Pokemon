@@ -47,27 +47,22 @@
 
 ### 1. Subir a GitHub
 
-Abre tu terminal en la carpeta del proyecto y ejecuta:
+El proyecto ya tiene `git` inicializado, la rama `main` configurada y el commit inicial listo con todos los archivos limpios.
+
+Para enlazarlo con tu nuevo repositorio en GitHub, ejecuta en la terminal:
 
 ```bash
-# 1. Inicializar git si aún no está inicializado
-git init
-
-# 2. Agregar todos los archivos
-git add .
-
-# 3. Crear el primer commit
-git commit -m "Initial commit - PokeCard Pass"
-
-# 4. Cambiar a la rama principal
-git branch -M main
-
-# 5. Conectar con tu repositorio nuevo de GitHub
+# 1. Vincular con tu repositorio nuevo de GitHub (reemplaza TU_USUARIO y TU_REPOSITORIO)
 git remote add origin https://github.com/TU_USUARIO/TU_REPOSITORIO.git
 
-# 6. Subir el código
+# 2. Subir el código a GitHub
 git push -u origin main
+
+# (Nota: Si tu repositorio en GitHub se creó con un README o licencia por defecto, usa --force):
+# git push -u origin main --force
 ```
+
+> **Incluido para GitHub:** Se añadió `.github/workflows/deploy.yml` y configuración `base: './'` en Vite para que el proyecto funcione al 100% tanto en GitHub Pages como en Vercel sin pantallas en blanco ni errores 404.
 
 ---
 

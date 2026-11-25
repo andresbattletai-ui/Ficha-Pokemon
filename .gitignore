@@ -39,3 +39,8 @@ firestore-debug.log*
 
 # Test & coverage
 coverage/
+
+# AI Studio & PWA dev artifacts
+.aistudio/
+dev-dist/
+bun.lock
