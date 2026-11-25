@@ -1,0 +1,6 @@
+{
+  "name": "PokéCard Pass: Ficha de Entrenador Pokémon",
+  "description": "Crea y certifica tu ficha oficial de Entrenador Pokémon estilo Pokédex con 6 criaturas, estadísticas, medallas de líderes de gimnasio y modo PWA instalable.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

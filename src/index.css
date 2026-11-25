@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-pokedex {
+    font-family: 'Orbitron', monospace, sans-serif;
+  }
+  .font-tech {
+    font-family: 'Rajdhani', sans-serif;
+  }
+  .font-badge {
+    font-family: 'Teko', sans-serif;
+  }
+}
+
+/* Metallic and Holographic Shimmer */
+@keyframes holoFoil {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.holo-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(56, 189, 248, 0.15) 25%,
+    rgba(236, 72, 153, 0.15) 50%,
+    rgba(234, 179, 8, 0.15) 75%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 300% 300%;
+  animation: holoFoil 12s ease infinite;
+}
+
+.badge-glow {
+  filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.7)) drop-shadow(0 0 24px rgba(234, 88, 12, 0.4));
+}
+
+.badge-locked {
+  filter: grayscale(100%) opacity(0.35);
+}
+
+/* Subtle scanlines effect */
+.scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.03),
+    rgba(0, 255, 0, 0.01),
+    rgba(0, 0, 255, 0.03)
+  );
+  background-size: 100% 3px, 6px 100%;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}

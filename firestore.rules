@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Fichas de Entrenador Pokémon
+    match /trainers/{trainerId} {
+      allow read: if true;
+      allow create: if request.resource.data.name is string && request.resource.data.inGameName is string;
+      allow update, delete: if true;
+    }
+    
+    // Líderes de Gimnasio
+    match /gymLeaders/{leaderId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    // Desafíos y Salas de Combate de Pokémon Champions
+    match /challenges/{challengeId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    // Ajustes Generales de la Liga
+    match /leagueSettings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
