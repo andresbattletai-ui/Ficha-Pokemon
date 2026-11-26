@@ -42,14 +42,14 @@ export const TrainerCardView: React.FC<Props> = ({
   const [showEliteChallengeModal, setShowEliteChallengeModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const earnedBadgesCount = trainer.gymBadges.filter((b) => b.isEarned).length;
-  const earnedEliteCount = trainer.eliteFour.filter((e) => e.isEarned).length;
+  const earnedBadgesCount = (trainer?.gymBadges || []).filter((b) => b?.isEarned).length;
+  const earnedEliteCount = (trainer?.eliteFour || []).filter((e) => e?.isEarned).length;
   const canChallengeElite = earnedBadgesCount === 8;
 
   // Theme configuration
-  const isRocket = trainer.theme === 'rocket-crimson';
-  const isCyan = trainer.theme === 'cyan-league';
-  const isEmerald = trainer.theme === 'cyber-emerald';
+  const isRocket = trainer?.theme === 'rocket-crimson';
+  const isCyan = trainer?.theme === 'cyan-league';
+  const isEmerald = trainer?.theme === 'cyber-emerald';
 
   const themeStyles = {
     outerBorder: isRocket

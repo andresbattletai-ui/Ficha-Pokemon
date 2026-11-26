@@ -37,11 +37,41 @@ import { Swords, CreditCard, Sparkles, Trophy, Shield, Gamepad2 } from 'lucide-r
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<'card' | 'gyms'>('card');
-  const [trainers, setTrainers] = useState<TrainerProfile[]>([]);
-  const [activeTrainer, setActiveTrainer] = useState<TrainerProfile | null>(null);
-  const [gymLeaders, setGymLeaders] = useState<GymLeaderAccount[]>([]);
-  const [activeLeader, setActiveLeader] = useState<GymLeaderAccount | null>(null);
-  const [challenges, setChallenges] = useState<GymChallenge[]>([]);
+  const [trainers, setTrainers] = useState<TrainerProfile[]>(() => {
+    try {
+      return getStoredProfiles();
+    } catch {
+      return [];
+    }
+  });
+  const [activeTrainer, setActiveTrainer] = useState<TrainerProfile>(() => {
+    try {
+      return getActiveProfile();
+    } catch {
+      return getStoredProfiles()[0];
+    }
+  });
+  const [gymLeaders, setGymLeaders] = useState<GymLeaderAccount[]>(() => {
+    try {
+      return getStoredGymLeaders();
+    } catch {
+      return [];
+    }
+  });
+  const [activeLeader, setActiveLeader] = useState<GymLeaderAccount | null>(() => {
+    try {
+      return getActiveLeaderSession();
+    } catch {
+      return null;
+    }
+  });
+  const [challenges, setChallenges] = useState<GymChallenge[]>(() => {
+    try {
+      return getStoredChallenges();
+    } catch {
+      return [];
+    }
+  });
   const [selectedChallenge, setSelectedChallenge] = useState<GymChallenge | null>(null);
 
   // Modals state
@@ -56,13 +86,17 @@ export default function App() {
   const leagueSettings = getLeagueSettings();
 
   const reloadData = () => {
-    const list = getStoredProfiles();
-    setTrainers(list);
-    const active = getActiveProfile();
-    setActiveTrainer(active);
-    setGymLeaders(getStoredGymLeaders());
-    setActiveLeader(getActiveLeaderSession());
-    setChallenges(getStoredChallenges());
+    try {
+      const list = getStoredProfiles();
+      setTrainers(list);
+      const active = getActiveProfile();
+      setActiveTrainer(active);
+      setGymLeaders(getStoredGymLeaders());
+      setActiveLeader(getActiveLeaderSession());
+      setChallenges(getStoredChallenges());
+    } catch (err) {
+      console.warn('Error reloading data:', err);
+    }
   };
 
   useEffect(() => {

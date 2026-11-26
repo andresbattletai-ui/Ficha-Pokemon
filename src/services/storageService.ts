@@ -261,6 +261,27 @@ export function createNewBlankTrainer(): TrainerProfile {
   };
 }
 
+export function sanitizeTrainer(t: any): TrainerProfile {
+  if (!t || typeof t !== 'object') return INITIAL_TRAINER;
+  return {
+    id: t.id || `trainer-${Date.now()}`,
+    name: t.name || 'Entrenador Pokémon',
+    inGameName: t.inGameName || '@entrenador',
+    trainerIdNumber: t.trainerIdNumber || '00001-LG',
+    registrationDate: t.registrationDate || new Date().toLocaleDateString('es-ES'),
+    avatarUrl: t.avatarUrl || 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/trainers/red.png',
+    region: t.region || 'Liga Pokémon Champions',
+    quote: t.quote || '¡Listo para el combate!',
+    theme: t.theme || 'cyan-league',
+    isLocked: Boolean(t.isLocked),
+    lockedAt: t.lockedAt,
+    team: Array.isArray(t.team) && t.team.length === 6 ? t.team : DEFAULT_INITIAL_TEAM,
+    gymBadges: Array.isArray(t.gymBadges) && t.gymBadges.length > 0 ? t.gymBadges : INITIAL_GYM_BADGES.map((b) => ({ ...b, isEarned: false })),
+    eliteFour: Array.isArray(t.eliteFour) && t.eliteFour.length > 0 ? t.eliteFour : INITIAL_ELITE_FOUR.map((e) => ({ ...e, isEarned: false })),
+    champion: t.champion && typeof t.champion === 'object' ? t.champion : { isChampion: false, title: 'Aspirante de la Liga Pokémon' },
+  };
+}
+
 export function getStoredProfiles(): TrainerProfile[] {
   try {
     const raw = localStorage.getItem(STORAGE_PROFILES_KEY);
@@ -273,7 +294,7 @@ export function getStoredProfiles(): TrainerProfile[] {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       if (parsed.length > 0) {
-        return parsed;
+        return parsed.map(sanitizeTrainer);
       }
       // If array exists but is empty (e.g. user deleted all trainers), create a fresh new one
       // instead of re-injecting the old deleted INITIAL_TRAINER
