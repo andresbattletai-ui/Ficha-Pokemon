@@ -27,6 +27,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { SecretPinPad } from './SecretPinPad';
 
 interface Props {
   isOpen: boolean;
@@ -49,10 +50,12 @@ export const LeaderPortalModal: React.FC<Props> = ({
   onOpenBattleRoom,
   onTrainerUpdated,
 }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const gymLeaders = getStoredGymLeaders();
+  const allTrainers = getStoredProfiles();
+
+  const [selectedLeaderId, setSelectedLeaderId] = useState<string>(() => gymLeaders[0]?.id || '');
+  const [pinInput, setPinInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [showCredentialsHelper, setShowCredentialsHelper] = useState(false);
 
   // Fast manual award state
   const [selectedTrainerId, setSelectedTrainerId] = useState('');
@@ -61,26 +64,23 @@ export const LeaderPortalModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  const gymLeaders = getStoredGymLeaders();
-  const allTrainers = getStoredProfiles();
+  const currentSelectedLeader = gymLeaders.find((l) => l.id === selectedLeaderId) || gymLeaders[0];
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanUser = username.trim().toLowerCase();
-    const cleanPass = password.trim();
+  const handlePinLogin = () => {
+    if (!currentSelectedLeader) return;
+    const cleanPin = pinInput.trim();
+    const targetPin = currentSelectedLeader.pin || currentSelectedLeader.password;
 
-    const matched = gymLeaders.find(
-      (l) => l.username.toLowerCase() === cleanUser && l.password === cleanPass
-    );
-
-    if (matched) {
+    if (cleanPin === targetPin || cleanPin === currentSelectedLeader.password) {
       sounds.playBeep(980, 'sine', 0.1);
       setErrorMsg('');
-      setActiveLeaderSession(matched);
-      onLeaderLogin(matched);
+      setActiveLeaderSession(currentSelectedLeader);
+      onLeaderLogin(currentSelectedLeader);
+      setPinInput('');
     } else {
       sounds.playBeep(260, 'sawtooth', 0.2);
-      setErrorMsg('Usuario o contraseña de Líder de Gimnasio incorrecto.');
+      setErrorMsg('PIN confidencial de 4 dígitos incorrecto.');
+      setPinInput('');
     }
   };
 
@@ -175,92 +175,50 @@ export const LeaderPortalModal: React.FC<Props> = ({
 
         {/* Content */}
         {!activeLeader ? (
-          /* LOGIN FORM FOR INDIVIDUAL LEADER */
-          <div className="p-6 sm:p-8 space-y-6 max-w-md mx-auto">
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="text-center space-y-1">
-                <div className="w-16 h-16 rounded-2xl bg-red-950/80 border border-red-500/40 flex items-center justify-center mx-auto text-red-400 shadow-inner mb-3">
-                  <KeyRound className="w-8 h-8" />
-                </div>
-                <h4 className="font-pokedex text-base font-bold text-white">
-                  INICIAR SESIÓN DE LÍDER
-                </h4>
-                <p className="text-xs text-slate-400 font-tech">
-                  Accede a tu panel para gestionar retadores, asignar salas de Pokémon Champions y acreditar tus medallas.
-                </p>
-              </div>
-
-              <div>
-                <label className="text-xs font-pokedex font-bold text-slate-300 block mb-1">
-                  USUARIO DEL LÍDER:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej. brock, misty, surge, giovanni..."
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm font-mono text-white outline-none focus:border-red-500"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-pokedex font-bold text-slate-300 block mb-1">
-                  CONTRASEÑA ASIGNADA:
-                </label>
-                <input
-                  type="password"
-                  placeholder="Ingresa tu contraseña de líder..."
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm font-mono text-white outline-none focus:border-red-500"
-                />
-              </div>
-
-              {errorMsg && (
-                <p className="text-xs text-rose-400 font-tech text-center">{errorMsg}</p>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-xs font-pokedex font-bold tracking-wider text-white shadow-lg shadow-red-900/40 transition active:scale-95"
-              >
-                ENTRAR A MI GIMNASIO
-              </button>
-            </form>
-
-            {/* Helper Accordion with Credentials for convenience */}
-            <div className="pt-2 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={() => setShowCredentialsHelper(!showCredentialsHelper)}
-                className="w-full flex items-center justify-between text-xs font-tech text-cyan-400 hover:text-cyan-300 p-2 rounded-lg bg-slate-950/60"
-              >
-                <span>🔑 Ver credenciales de prueba de los Líderes</span>
-                {showCredentialsHelper ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-
-              {showCredentialsHelper && (
-                <div className="mt-2 p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 space-y-1 max-h-40 overflow-y-auto">
+          /* LOGIN FORM FOR INDIVIDUAL LEADER WITH 4-DIGIT MASKED PIN */
+          <div className="p-6 sm:p-8 space-y-5 max-w-sm mx-auto">
+            {/* Identity Picker */}
+            <div className="bg-slate-950/90 p-3.5 rounded-2xl border border-red-500/30 space-y-2">
+              <label className="text-xs font-pokedex font-bold text-slate-300 block">
+                SELECCIONA TU IDENTIDAD DE LÍDER:
+              </label>
+              <div className="flex items-center gap-3">
+                {currentSelectedLeader && (
+                  <img
+                    src={currentSelectedLeader.avatarUrl}
+                    alt=""
+                    className="w-11 h-11 rounded-xl bg-slate-900 border border-red-500/50 object-cover shrink-0 shadow-md"
+                  />
+                )}
+                <select
+                  value={selectedLeaderId}
+                  onChange={(e) => {
+                    setSelectedLeaderId(e.target.value);
+                    setPinInput('');
+                    setErrorMsg('');
+                    sounds.playBeep(700, 'sine', 0.05);
+                  }}
+                  className="w-full bg-slate-900 border border-slate-700 text-xs font-tech text-white rounded-xl px-3 py-2.5 outline-none focus:border-red-500 cursor-pointer"
+                >
                   {gymLeaders.map((l) => (
-                    <div
-                      key={l.id}
-                      onClick={() => {
-                        setUsername(l.username);
-                        setPassword(l.password);
-                      }}
-                      className="p-1 rounded hover:bg-slate-900 cursor-pointer flex justify-between"
-                    >
-                      <span className="text-slate-200">{l.leaderName} ({l.username}):</span>
-                      <span className="text-amber-400 font-bold">{l.password}</span>
-                    </div>
+                    <option key={l.id} value={l.id} className="bg-slate-950 text-white">
+                      {l.badgeIcon} {l.leaderName} • {l.gymName}
+                    </option>
                   ))}
-                  <p className="text-[10px] text-slate-500 font-tech pt-1">
-                    * El Super Administrador puede crear o cambiar estas contraseñas en cualquier momento.
-                  </p>
-                </div>
-              )}
+                </select>
+              </div>
             </div>
+
+            {/* Secret 4-digit PIN Pad (Masked digits, never visible!) */}
+            <SecretPinPad
+              pin={pinInput}
+              onChange={setPinInput}
+              onSubmit={handlePinLogin}
+              error={errorMsg}
+              theme="red"
+              title={`PIN: ${currentSelectedLeader ? currentSelectedLeader.leaderName.toUpperCase() : 'LÍDER DE GIMNASIO'}`}
+              subtitle="Introduce tu PIN confidencial de 4 dígitos para ingresar a tu gimnasio"
+            />
           </div>
         ) : (
           /* ACTIVE LEADER DASHBOARD */

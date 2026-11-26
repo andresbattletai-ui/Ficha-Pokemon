@@ -94,6 +94,7 @@ export interface GymLeaderAccount {
   id: string;
   username: string; // Individual login user
   password: string; // Assigned by Super Admin
+  pin?: string; // Secret 4-digit PIN
   leaderName: string;
   gymId: number; // Links to Gym Badge
   gymName: string;
@@ -144,4 +145,5 @@ export interface LeagueSettings {
   announcementText: string;
   adminUsername: string;
   adminPassword: string;
+  adminPin: string; // Secret 4-digit master PIN for Super Admin
 }

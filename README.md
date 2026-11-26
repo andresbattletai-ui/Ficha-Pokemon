@@ -34,12 +34,12 @@
    - Chat interactivo con respuestas rápidas y otorgamiento de medalla oficial con veredicto personalizado.
 
 4. **Portal Individual de Líderes de Gimnasio**:
-   - Cada líder accede con usuario y contraseña propios (ej. `brock`/`roca123`, `misty`/`agua123`, `giovanni`/`rocket123`).
+   - Acceso seguro mediante **PIN secreto de 4 dígitos** completamente oculto con indicador de esferas de seguridad (ej. Brock: `1001`, Misty: `1002`, Lt. Surge: `1003`, Erika: `1004`, Koga: `1005`, Sabrina: `1006`, Blaine: `1007`, Giovanni: `1008`).
    - Control del estado del gimnasio y bandeja de retadores entrantes.
 
 5. **Panel de Super Administrador General**:
-   - Acceso con usuario `admin` y contraseña `admin2026`.
-   - Modificación completa de fichas de jugadores, desbloqueo de sellos, monitor de batallas en vivo, creación o eliminación de gimnasios y reasignación de contraseñas a los líderes.
+   - Acceso protegido con **PIN secreto maestro de 4 dígitos** (por defecto: `2026`), completamente oculto para máxima confidencialidad.
+   - Modificación completa de fichas de jugadores, desbloqueo de sellos, monitor de batallas en vivo, creación o eliminación de gimnasios y reasignación de PINs confidenciales a los líderes.
 
 ---
 

@@ -27,13 +27,15 @@ export const DEFAULT_LEAGUE_SETTINGS: LeagueSettings = {
   announcementText: '¡Desafía a los Líderes de Gimnasio activos para recibir la ID de la sala de Pokémon Champions y ganar tus medallas oficiales!',
   adminUsername: 'admin',
   adminPassword: 'admin2026',
+  adminPin: '2026',
 };
 
 export const INITIAL_GYM_LEADERS: GymLeaderAccount[] = [
   {
     id: 'leader-1',
     username: 'brock',
-    password: 'roca123',
+    password: '1001',
+    pin: '1001',
     leaderName: 'Líder Brock',
     gymId: 1,
     gymName: 'Gimnasio Plateada',
@@ -48,7 +50,8 @@ export const INITIAL_GYM_LEADERS: GymLeaderAccount[] = [
   {
     id: 'leader-2',
     username: 'misty',
-    password: 'agua123',
+    password: '1002',
+    pin: '1002',
     leaderName: 'Líder Misty',
     gymId: 2,
     gymName: 'Gimnasio Celeste',
@@ -63,7 +66,8 @@ export const INITIAL_GYM_LEADERS: GymLeaderAccount[] = [
   {
     id: 'leader-3',
     username: 'surge',
-    password: 'rayo123',
+    password: '1003',
+    pin: '1003',
     leaderName: 'Líder Lt. Surge',
     gymId: 3,
     gymName: 'Gimnasio Carmín',
@@ -78,7 +82,8 @@ export const INITIAL_GYM_LEADERS: GymLeaderAccount[] = [
   {
     id: 'leader-4',
     username: 'erika',
-    password: 'planta123',
+    password: '1004',
+    pin: '1004',
     leaderName: 'Líder Erika',
     gymId: 4,
     gymName: 'Gimnasio Azulona',
@@ -93,7 +98,8 @@ export const INITIAL_GYM_LEADERS: GymLeaderAccount[] = [
   {
     id: 'leader-5',
     username: 'koga',
-    password: 'veneno123',
+    password: '1005',
+    pin: '1005',
     leaderName: 'Líder Koga',
     gymId: 5,
     gymName: 'Gimnasio Fucsia',
@@ -108,7 +114,8 @@ export const INITIAL_GYM_LEADERS: GymLeaderAccount[] = [
   {
     id: 'leader-6',
     username: 'sabrina',
-    password: 'psico123',
+    password: '1006',
+    pin: '1006',
     leaderName: 'Líder Sabrina',
     gymId: 6,
     gymName: 'Gimnasio Azafrán',
@@ -123,7 +130,8 @@ export const INITIAL_GYM_LEADERS: GymLeaderAccount[] = [
   {
     id: 'leader-7',
     username: 'blaine',
-    password: 'fuego123',
+    password: '1007',
+    pin: '1007',
     leaderName: 'Líder Blaine',
     gymId: 7,
     gymName: 'Gimnasio Canela',
@@ -138,7 +146,8 @@ export const INITIAL_GYM_LEADERS: GymLeaderAccount[] = [
   {
     id: 'leader-8',
     username: 'giovanni',
-    password: 'rocket123',
+    password: '1008',
+    pin: '1008',
     leaderName: 'Líder Giovanni (Rocket)',
     gymId: 8,
     gymName: 'Gym Legados Verde',
@@ -376,7 +385,13 @@ export function getStoredGymLeaders(): GymLeaderAccount[] {
       return INITIAL_GYM_LEADERS;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_GYM_LEADERS;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map((l, idx) => ({
+        ...l,
+        pin: l.pin || (l.password && /^\d{4}$/.test(l.password) ? l.password : String(1001 + idx)),
+      }));
+    }
+    return INITIAL_GYM_LEADERS;
   } catch {
     return INITIAL_GYM_LEADERS;
   }
@@ -560,7 +575,12 @@ export function getLeagueSettings(): LeagueSettings {
       localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(DEFAULT_LEAGUE_SETTINGS));
       return DEFAULT_LEAGUE_SETTINGS;
     }
-    return { ...DEFAULT_LEAGUE_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_LEAGUE_SETTINGS,
+      ...parsed,
+      adminPin: parsed.adminPin || '2026',
+    };
   } catch {
     return DEFAULT_LEAGUE_SETTINGS;
   }

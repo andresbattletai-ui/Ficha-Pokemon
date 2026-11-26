@@ -42,7 +42,10 @@ import {
   Gamepad2,
   Sparkles,
   AlertTriangle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
+import { SecretPinPad } from './SecretPinPad';
 
 interface Props {
   isOpen: boolean;
@@ -56,9 +59,10 @@ export const SuperAdminModal: React.FC<Props> = ({
   onDataModified,
 }) => {
   const [isAdminAuthed, setIsAdminAuthed] = useState<boolean>(() => getIsAdminAuthenticated());
-  const [adminUser, setAdminUser] = useState('');
-  const [adminPass, setAdminPass] = useState('');
+  const [adminPinInput, setAdminPinInput] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [showAdminPinInSettings, setShowAdminPinInSettings] = useState(false);
+  const [visibleLeaderPins, setVisibleLeaderPins] = useState<Record<string, boolean>>({});
 
   const [activeTab, setActiveTab] = useState<'leaders' | 'trainers' | 'battles' | 'settings'>('leaders');
 
@@ -79,6 +83,7 @@ export const SuperAdminModal: React.FC<Props> = ({
     elementalType: 'Fuego',
     username: '',
     password: '',
+    pin: '',
     badgeName: 'Medalla Nueva',
     badgeIcon: '🔥',
     badgeColor: '#ef4444',
@@ -96,25 +101,25 @@ export const SuperAdminModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  const handleAdminLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      (adminUser.trim() === settings.adminUsername && adminPass.trim() === settings.adminPassword) ||
-      (adminUser.trim() === 'admin' && adminPass.trim() === 'admin2026')
-    ) {
+  const handleAdminLogin = () => {
+    const entered = adminPinInput.trim();
+    const validPin = settings.adminPin || '2026';
+    if (entered === validPin || entered === '2026') {
       setIsAdminAuthed(true);
       setIsAdminAuthenticated(true);
       setLoginError('');
       sounds.playBeep(1000, 'sine', 0.1);
     } else {
       sounds.playBeep(240, 'sawtooth', 0.2);
-      setLoginError('Usuario o contraseña maestra de Super Administrador inválida.');
+      setLoginError('PIN Secreto de 4 dígitos incorrecto.');
+      setAdminPinInput('');
     }
   };
 
   const handleAdminLogout = () => {
     setIsAdminAuthed(false);
     setIsAdminAuthenticated(false);
+    setAdminPinInput('');
     sounds.playBeep(500, 'sine', 0.1);
   };
 
@@ -133,8 +138,15 @@ export const SuperAdminModal: React.FC<Props> = ({
   const handleCreateLeader = (e: React.FormEvent) => {
     e.preventDefault();
     setCreateLeaderError('');
-    if (!newLeader.leaderName || !newLeader.username || !newLeader.password) {
-      setCreateLeaderError('Por favor completa el nombre del líder, usuario y contraseña asignada.');
+    const leaderPin = (newLeader.pin || newLeader.password || '').trim();
+    if (!newLeader.leaderName || !newLeader.username || !leaderPin) {
+      setCreateLeaderError('Por favor completa el nombre del líder, usuario y su PIN secreto de 4 dígitos.');
+      sounds.playBeep(260, 'sawtooth', 0.15);
+      return;
+    }
+
+    if (!/^\d{4}$/.test(leaderPin)) {
+      setCreateLeaderError('El PIN del líder debe contener exactamente 4 dígitos numéricos.');
       sounds.playBeep(260, 'sawtooth', 0.15);
       return;
     }
@@ -147,7 +159,8 @@ export const SuperAdminModal: React.FC<Props> = ({
       city: newLeader.city || 'Ciudad Pokémon',
       elementalType: newLeader.elementalType || 'Fuego',
       username: newLeader.username.trim().toLowerCase(),
-      password: newLeader.password.trim(),
+      password: leaderPin,
+      pin: leaderPin,
       badgeName: newLeader.badgeName || 'Medalla Oficial',
       badgeIcon: newLeader.badgeIcon || '🏅',
       badgeColor: newLeader.badgeColor || '#38bdf8',
@@ -239,51 +252,17 @@ export const SuperAdminModal: React.FC<Props> = ({
 
         {/* Content */}
         {!isAdminAuthed ? (
-          /* ADMIN LOGIN */
-          <div className="p-8 max-w-md mx-auto space-y-5 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-amber-950/80 border border-amber-500/50 flex items-center justify-center mx-auto text-amber-400 shadow-inner">
-              <KeyRound className="w-8 h-8" />
-            </div>
-
-            <div>
-              <h4 className="font-pokedex text-base font-bold text-white">
-                AUTENTICACIÓN MAESTRA
-              </h4>
-              <p className="text-xs font-tech text-slate-400 mt-1">
-                Ingresa con las credenciales de Administración General de la Liga Pokémon.
-              </p>
-            </div>
-
-            <form onSubmit={handleAdminLogin} className="space-y-3.5">
-              <input
-                type="text"
-                placeholder="Usuario maestro (admin)..."
-                value={adminUser}
-                onChange={(e) => setAdminUser(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm font-mono text-white outline-none focus:border-amber-400"
-                autoFocus
-              />
-              <input
-                type="password"
-                placeholder="Contraseña maestra..."
-                value={adminPass}
-                onChange={(e) => setAdminPass(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm font-mono text-white outline-none focus:border-amber-400"
-              />
-
-              <p className="text-[11px] text-amber-400/90 font-tech">
-                Clave por defecto: <span className="font-mono font-bold text-white">admin / admin2026</span>
-              </p>
-
-              {loginError && <p className="text-xs text-rose-400 font-tech">{loginError}</p>}
-
-              <button
-                type="submit"
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-pokedex text-xs font-black tracking-wider shadow-lg transition active:scale-95"
-              >
-                ENTRAR COMO SUPER ADMINISTRADOR
-              </button>
-            </form>
+          /* ADMIN 4-DIGIT PIN AUTHENTICATION */
+          <div className="p-6 sm:p-8 max-w-sm mx-auto">
+            <SecretPinPad
+              pin={adminPinInput}
+              onChange={setAdminPinInput}
+              onSubmit={handleAdminLogin}
+              error={loginError}
+              theme="amber"
+              title="ACCESO SUPER ADMINISTRADOR"
+              subtitle="Introduce el PIN secreto maestro de 4 dígitos para ingresar"
+            />
           </div>
         ) : (
           /* AUTHENTICATED ADMIN DASHBOARD */
@@ -465,13 +444,19 @@ export const SuperAdminModal: React.FC<Props> = ({
                           />
                         </div>
                         <div>
-                          <label className="text-amber-300 block mb-1 font-bold">Contraseña Asignada:</label>
+                          <label className="text-amber-300 block mb-1 font-bold">PIN Secreto (4 dígitos):</label>
                           <input
-                            type="text"
-                            placeholder="ej. lucha123"
-                            value={newLeader.password}
-                            onChange={(e) => setNewLeader({ ...newLeader, password: e.target.value })}
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-amber-500/60 font-mono text-white outline-none"
+                            type="password"
+                            inputMode="numeric"
+                            maxLength={4}
+                            pattern="[0-9]*"
+                            placeholder="Ej. 1009"
+                            value={newLeader.pin || newLeader.password || ''}
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/\D/g, '').slice(0, 4);
+                              setNewLeader({ ...newLeader, pin: v, password: v });
+                            }}
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-amber-500/60 font-mono text-white outline-none tracking-widest text-center"
                             required
                           />
                         </div>
@@ -541,12 +526,18 @@ export const SuperAdminModal: React.FC<Props> = ({
                           />
                         </div>
                         <div>
-                          <label className="text-amber-300 block mb-1 font-bold">Contraseña Asignada:</label>
+                          <label className="text-amber-300 block mb-1 font-bold">PIN Secreto (4 dígitos):</label>
                           <input
-                            type="text"
-                            value={editingLeader.password}
-                            onChange={(e) => setEditingLeader({ ...editingLeader, password: e.target.value })}
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-amber-500/50 font-mono text-white outline-none"
+                            type="password"
+                            inputMode="numeric"
+                            maxLength={4}
+                            pattern="[0-9]*"
+                            value={editingLeader.pin || editingLeader.password || ''}
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/\D/g, '').slice(0, 4);
+                              setEditingLeader({ ...editingLeader, pin: v, password: v });
+                            }}
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-amber-500/50 font-mono text-white outline-none tracking-widest text-center"
                           />
                         </div>
                       </div>
@@ -596,7 +587,20 @@ export const SuperAdminModal: React.FC<Props> = ({
                             </span>
                             <div className="flex items-center gap-3 text-[11px] font-mono text-slate-300 mt-1">
                               <span>Usuario: <strong className="text-amber-300">{leader.username}</strong></span>
-                              <span>Clave: <strong className="text-amber-300">{leader.password}</strong></span>
+                              <span className="flex items-center gap-1.5">
+                                <span>PIN:</span>
+                                <strong className="text-amber-300 font-mono tracking-widest">
+                                  {visibleLeaderPins[leader.id] ? (leader.pin || leader.password) : '••••'}
+                                </strong>
+                                <button
+                                  type="button"
+                                  onClick={() => setVisibleLeaderPins((prev) => ({ ...prev, [leader.id]: !prev[leader.id] }))}
+                                  className="text-slate-400 hover:text-amber-300 transition p-0.5"
+                                  title={visibleLeaderPins[leader.id] ? 'Ocultar PIN' : 'Ver PIN'}
+                                >
+                                  {visibleLeaderPins[leader.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -890,28 +894,43 @@ export const SuperAdminModal: React.FC<Props> = ({
                   </div>
 
                   <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                    <span className="font-pokedex text-xs font-bold text-amber-300">
-                      CREDENCIALES DE SUPER ADMINISTRADOR:
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-tech">
-                      <div>
-                        <label className="text-slate-400 block mb-1">Usuario Maestro:</label>
+                    <div className="flex items-center justify-between">
+                      <span className="font-pokedex text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <Lock className="w-4 h-4 text-amber-400" />
+                        <span>PIN MAESTRO DE SUPER ADMINISTRADOR (4 DÍGITOS):</span>
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-tech text-slate-400">
+                      Código confidencial de 4 dígitos para ingresar a la Administración General de la Liga Pokémon.
+                    </p>
+                    <div className="max-w-xs">
+                      <label className="text-slate-400 block mb-1 text-xs font-tech">PIN Secreto Maestro (4 dígitos):</label>
+                      <div className="relative">
                         <input
-                          type="text"
-                          value={settings.adminUsername}
-                          onChange={(e) => setSettings({ ...settings, adminUsername: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none font-mono"
+                          type={showAdminPinInSettings ? 'text' : 'password'}
+                          maxLength={4}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={settings.adminPin || '2026'}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                            setSettings({ ...settings, adminPin: val });
+                          }}
+                          className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-amber-500/50 text-amber-300 font-mono text-base tracking-[0.5em] text-center outline-none focus:border-amber-400 font-bold"
+                          placeholder="2026"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowAdminPinInSettings(!showAdminPinInSettings)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-300 text-xs font-tech p-1"
+                          title={showAdminPinInSettings ? 'Ocultar PIN' : 'Ver PIN'}
+                        >
+                          {showAdminPinInSettings ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
-                      <div>
-                        <label className="text-slate-400 block mb-1">Contraseña Maestra:</label>
-                        <input
-                          type="text"
-                          value={settings.adminPassword}
-                          onChange={(e) => setSettings({ ...settings, adminPassword: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-amber-300 outline-none font-mono"
-                        />
-                      </div>
+                      <span className="text-[10px] text-slate-500 font-tech mt-1 block">
+                        * Por defecto es <strong className="text-amber-400 font-mono">2026</strong>. Puedes cambiarlo en cualquier momento.
+                      </span>
                     </div>
                   </div>
 
