@@ -101,8 +101,8 @@ export const SuperAdminModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  const handleAdminLogin = () => {
-    const entered = adminPinInput.trim();
+  const handleAdminLogin = (submittedPin?: string) => {
+    const entered = (typeof submittedPin === 'string' ? submittedPin : adminPinInput).trim();
     const validPin = settings.adminPin || '2026';
     if (entered === validPin || entered === '2026') {
       setIsAdminAuthed(true);

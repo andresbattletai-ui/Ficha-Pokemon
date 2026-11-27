@@ -66,9 +66,9 @@ export const LeaderPortalModal: React.FC<Props> = ({
 
   const currentSelectedLeader = gymLeaders.find((l) => l.id === selectedLeaderId) || gymLeaders[0];
 
-  const handlePinLogin = () => {
+  const handlePinLogin = (submittedPin?: string) => {
     if (!currentSelectedLeader) return;
-    const cleanPin = pinInput.trim();
+    const cleanPin = (typeof submittedPin === 'string' ? submittedPin : pinInput).trim();
     const targetPin = currentSelectedLeader.pin || currentSelectedLeader.password;
 
     if (cleanPin === targetPin || cleanPin === currentSelectedLeader.password) {

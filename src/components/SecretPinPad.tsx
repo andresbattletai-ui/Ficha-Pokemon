@@ -5,7 +5,7 @@ import { Shield, Lock, Delete, ArrowRight } from 'lucide-react';
 interface SecretPinPadProps {
   pin: string;
   onChange: (pin: string) => void;
-  onSubmit: () => void;
+  onSubmit: (submittedPin?: string) => void;
   error?: string;
   theme?: 'amber' | 'red';
   title?: string;
@@ -24,6 +24,11 @@ export const SecretPinPad: React.FC<SecretPinPadProps> = ({
   autoFocus = true,
 }) => {
   const hiddenInputRef = useRef<HTMLInputElement>(null);
+  const onSubmitRef = useRef(onSubmit);
+
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
 
   useEffect(() => {
     if (autoFocus && hiddenInputRef.current) {
@@ -44,9 +49,9 @@ export const SecretPinPad: React.FC<SecretPinPadProps> = ({
       sounds.playBeep(650 + nextPin.length * 70, 'sine', 0.06);
       onChange(nextPin);
       if (nextPin.length === 4) {
-        // Auto submit when 4 digits are completed
+        // Auto submit when 4 digits are completed using latest ref + completed PIN
         setTimeout(() => {
-          onSubmit();
+          onSubmitRef.current(nextPin);
         }, 120);
       }
     }
@@ -75,7 +80,7 @@ export const SecretPinPad: React.FC<SecretPinPadProps> = ({
     onChange(raw);
     if (raw.length === 4) {
       setTimeout(() => {
-        onSubmit();
+        onSubmitRef.current(raw);
       }, 120);
     }
   };
@@ -83,7 +88,7 @@ export const SecretPinPad: React.FC<SecretPinPadProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && pin.length === 4) {
       e.preventDefault();
-      onSubmit();
+      onSubmitRef.current(pin);
     }
   };
 
@@ -230,7 +235,7 @@ export const SecretPinPad: React.FC<SecretPinPadProps> = ({
         disabled={pin.length !== 4}
         onClick={(e) => {
           e.stopPropagation();
-          onSubmit();
+          onSubmitRef.current(pin);
         }}
         className={`w-full py-3 rounded-xl font-pokedex text-xs font-black tracking-wider transition shadow-lg flex items-center justify-center gap-2 ${
           pin.length === 4
