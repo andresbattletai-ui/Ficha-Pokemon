@@ -1,30 +1,386 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Fichas de Entrenador Pokémon
+    // Pillar 4.1: Global Safety Net default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HARDENED HELPERS ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidSafeUrl(url) {
+      return url is string && url.size() >= 1 && url.size() <= 500 &&
+        url.matches('^(/assets/[a-zA-Z0-9_./\\-]+|https?://[^\\s]+)$');
+    }
+
+    function isValidHexColor(color) {
+      return color is string && color.size() >= 4 && color.size() <= 9 &&
+        color.matches('^#[0-9a-fA-F]{3,8}$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrapAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'andresomana3@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrapAdmin() || (
+        isVerifiedUser() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isOwner(ownerId) {
+      return isVerifiedUser() && request.auth.uid == ownerId;
+    }
+
+    // --- NESTED MAP BLUEPRINTS ---
+
+    function isValidChampionRecord(champ) {
+      return champ is map &&
+        champ.keys().hasAll(['isChampion', 'title']) &&
+        champ.keys().hasOnly(['isChampion', 'title', 'earnedDate', 'hallOfFameId', 'awardedBy']) &&
+        champ.isChampion is bool &&
+        champ.title is string && champ.title.size() >= 1 && champ.title.size() <= 100 &&
+        (!('earnedDate' in champ) || (champ.earnedDate is string && champ.earnedDate.size() <= 32)) &&
+        (!('hallOfFameId' in champ) || (champ.hallOfFameId is string && champ.hallOfFameId.size() <= 64)) &&
+        (!('awardedBy' in champ) || (champ.awardedBy is string && champ.awardedBy.size() <= 80));
+    }
+
+    function isValidBattleMessage(msg) {
+      return msg is map &&
+        msg.keys().hasAll(['id', 'sender', 'senderName', 'text', 'timestamp']) &&
+        msg.keys().hasOnly(['id', 'sender', 'senderName', 'text', 'timestamp']) &&
+        isValidId(msg.id) &&
+        msg.sender in ['trainer', 'leader', 'system'] &&
+        msg.senderName is string && msg.senderName.size() >= 1 && msg.senderName.size() <= 80 &&
+        msg.text is string && msg.text.size() >= 1 && msg.text.size() <= 500 &&
+        msg.timestamp is string && msg.timestamp.size() >= 1 && msg.timestamp.size() <= 32;
+    }
+
+    // --- DOCUMENT VALIDATION BLUEPRINTS ---
+
+    function isValidPrivateProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'createdAt', 'updatedAt']) &&
+        isValidId(data.uid) &&
+        data.uid == request.auth.uid &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+        data.email == request.auth.token.email &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'createdAt']) &&
+        isValidId(data.uid) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+        data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidTrainer(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'name', 'inGameName', 'trainerIdNumber',
+          'registrationDate', 'avatarUrl', 'region', 'theme', 'isLocked',
+          'team', 'gymBadges', 'eliteFour', 'champion', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerId', 'name', 'inGameName', 'trainerIdNumber',
+          'registrationDate', 'avatarUrl', 'region', 'quote', 'theme',
+          'isLocked', 'lockedAt', 'team', 'gymBadges', 'eliteFour',
+          'champion', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerId) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 60 &&
+        data.inGameName is string && data.inGameName.size() >= 1 && data.inGameName.size() <= 40 &&
+        data.trainerIdNumber is string && data.trainerIdNumber.size() >= 1 && data.trainerIdNumber.size() <= 32 &&
+        data.registrationDate is string && data.registrationDate.size() >= 1 && data.registrationDate.size() <= 32 &&
+        isValidSafeUrl(data.avatarUrl) &&
+        data.region is string && data.region.size() >= 1 && data.region.size() <= 80 &&
+        (!('quote' in data) || (data.quote is string && data.quote.size() <= 200)) &&
+        data.theme in ['cyan-league', 'rocket-crimson', 'kanto-classic', 'cyber-emerald', 'custom'] &&
+        data.isLocked is bool &&
+        (!('lockedAt' in data) || (data.lockedAt is string && data.lockedAt.size() <= 40)) &&
+        data.team is list && data.team.size() >= 1 && data.team.size() <= 6 &&
+        data.team[0] is map && data.team[0].species is string && data.team[0].species.size() <= 60 &&
+        data.gymBadges is list && data.gymBadges.size() >= 1 && data.gymBadges.size() <= 8 &&
+        data.gymBadges[0] is map && data.gymBadges[0].name is string && data.gymBadges[0].name.size() <= 60 &&
+        data.eliteFour is list && data.eliteFour.size() >= 1 && data.eliteFour.size() <= 4 &&
+        data.eliteFour[0] is map && data.eliteFour[0].name is string && data.eliteFour[0].name.size() <= 60 &&
+        isValidChampionRecord(data.champion) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidGymLeader(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'username', 'leaderName', 'gymId', 'gymName',
+          'city', 'elementalType', 'avatarUrl', 'status', 'badgeName',
+          'badgeIcon', 'badgeColor', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerId', 'username', 'leaderName', 'gymId', 'gymName',
+          'city', 'elementalType', 'avatarUrl', 'status', 'badgeName',
+          'badgeIcon', 'badgeColor', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerId) &&
+        data.username is string && data.username.size() >= 1 && data.username.size() <= 40 &&
+        data.leaderName is string && data.leaderName.size() >= 1 && data.leaderName.size() <= 80 &&
+        data.gymId is int && data.gymId >= 1 && data.gymId <= 32 &&
+        data.gymName is string && data.gymName.size() >= 1 && data.gymName.size() <= 80 &&
+        data.city is string && data.city.size() >= 1 && data.city.size() <= 80 &&
+        data.elementalType is string && data.elementalType.size() >= 1 && data.elementalType.size() <= 32 &&
+        isValidSafeUrl(data.avatarUrl) &&
+        data.status in ['abierto', 'en_batalla', 'cerrado'] &&
+        data.badgeName is string && data.badgeName.size() >= 1 && data.badgeName.size() <= 60 &&
+        data.badgeIcon is string && data.badgeIcon.size() >= 1 && data.badgeIcon.size() <= 16 &&
+        isValidHexColor(data.badgeColor) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidChallenge(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'gymId', 'gymName', 'gymLeaderName', 'leaderUsername',
+          'trainerId', 'trainerName', 'trainerIgn', 'trainerAvatar', 'status',
+          'battleMessages', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'ownerId', 'leaderOwnerId', 'gymId', 'gymName', 'gymLeaderName',
+          'leaderUsername', 'trainerId', 'trainerName', 'trainerIgn', 'trainerAvatar',
+          'pokemonChampionsRoomId', 'status', 'battleMessages', 'battleNotes',
+          'badgeAwarded', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        isValidId(data.ownerId) &&
+        (!('leaderOwnerId' in data) || isValidId(data.leaderOwnerId)) &&
+        data.gymId is int && data.gymId >= 1 && data.gymId <= 32 &&
+        data.gymName is string && data.gymName.size() >= 1 && data.gymName.size() <= 80 &&
+        data.gymLeaderName is string && data.gymLeaderName.size() >= 1 && data.gymLeaderName.size() <= 80 &&
+        data.leaderUsername is string && data.leaderUsername.size() >= 1 && data.leaderUsername.size() <= 40 &&
+        isValidId(data.trainerId) &&
+        data.trainerName is string && data.trainerName.size() >= 1 && data.trainerName.size() <= 60 &&
+        data.trainerIgn is string && data.trainerIgn.size() >= 1 && data.trainerIgn.size() <= 40 &&
+        isValidSafeUrl(data.trainerAvatar) &&
+        (!('pokemonChampionsRoomId' in data) || (data.pokemonChampionsRoomId is string && data.pokemonChampionsRoomId.size() <= 64)) &&
+        data.status in ['pendiente', 'aceptado', 'en_combate', 'victoria_retador', 'victoria_lider', 'cancelado'] &&
+        data.battleMessages is list && data.battleMessages.size() >= 1 && data.battleMessages.size() <= 50 &&
+        isValidBattleMessage(data.battleMessages[0]) &&
+        (!('battleNotes' in data) || (data.battleNotes is string && data.battleNotes.size() <= 400)) &&
+        (!('badgeAwarded' in data) || data.badgeAwarded is bool) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidLeagueSettings(data) {
+      return data.keys().hasAll([
+          'leagueName', 'seasonTitle', 'primaryColor', 'accentColor',
+          'bannerTitle', 'announcementText', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'leagueName', 'seasonTitle', 'primaryColor', 'accentColor',
+          'bannerTitle', 'announcementText', 'updatedAt'
+        ]) &&
+        data.leagueName is string && data.leagueName.size() >= 1 && data.leagueName.size() <= 100 &&
+        data.seasonTitle is string && data.seasonTitle.size() >= 1 && data.seasonTitle.size() <= 120 &&
+        isValidHexColor(data.primaryColor) &&
+        isValidHexColor(data.accentColor) &&
+        data.bannerTitle is string && data.bannerTitle.size() >= 1 && data.bannerTitle.size() <= 120 &&
+        data.announcementText is string && data.announcementText.size() >= 1 && data.announcementText.size() <= 400 &&
+        data.updatedAt is timestamp;
+    }
+
+    // --- COLLECTION RULES ---
+
+    // Private User PII (Split Collection Strategy)
+    match /users/{userId}/private/{docId} {
+      allow get: if isValidId(userId) && docId == 'profile' && (isOwner(userId) || isAdmin());
+      allow list: if isVerifiedUser() && (resource.data.uid == request.auth.uid || isBootstrapAdmin());
+      allow create: if isValidId(userId) && docId == 'profile' &&
+        isOwner(userId) &&
+        isValidPrivateProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) && docId == 'profile' &&
+        isValidPrivateProfile(incoming()) &&
+        (isOwner(userId) || isAdmin()) &&
+        incoming().uid == existing().uid &&
+        incoming().email == existing().email &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt']);
+      allow delete: if isValidId(userId) && docId == 'profile' && isAdmin();
+    }
+
+    // Trusted Admins Registry
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if isBootstrapAdmin();
+      allow create: if isValidId(adminId) &&
+        isBootstrapAdmin() &&
+        isValidAdminRecord(incoming()) &&
+        incoming().uid == adminId &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(adminId) && isBootstrapAdmin() && adminId != request.auth.uid;
+    }
+
+    // Trainer Cards
     match /trainers/{trainerId} {
-      allow read: if true;
-      allow create: if request.resource.data.name is string && request.resource.data.inGameName is string;
-      allow update, delete: if true;
+      allow get: if isValidId(trainerId) && isVerifiedUser() && (isOwner(existing().ownerId) || isAdmin());
+      allow list: if isVerifiedUser() && (resource.data.ownerId == request.auth.uid || isBootstrapAdmin());
+      allow create: if isValidId(trainerId) &&
+        isVerifiedUser() &&
+        isValidTrainer(incoming()) &&
+        incoming().id == trainerId &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().champion.isChampion == false &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(trainerId) &&
+        isVerifiedUser() &&
+        isValidTrainer(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          // Action: Update theme/quote on any owned card
+          (isOwner(existing().ownerId) &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['theme', 'quote', 'updatedAt'])) ||
+          // Action: Edit unlocked card details before sealing
+          (isOwner(existing().ownerId) &&
+            existing().isLocked == false &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'name', 'inGameName', 'avatarUrl', 'region', 'quote', 'theme',
+              'team', 'isLocked', 'lockedAt', 'updatedAt'
+            ]))
+        );
+      allow delete: if isValidId(trainerId) && isVerifiedUser() && (isOwner(existing().ownerId) || isAdmin());
     }
-    
-    // Líderes de Gimnasio
+
+    // Public Gym Leaders Directory (secrets excluded)
     match /gymLeaders/{leaderId} {
-      allow read: if true;
-      allow write: if true;
+      allow get: if isValidId(leaderId) && isVerifiedUser() && (isOwner(existing().ownerId) || isAdmin());
+      allow list: if isVerifiedUser() && (resource.data.ownerId == request.auth.uid || isBootstrapAdmin());
+      allow create: if isValidId(leaderId) &&
+        isAdmin() &&
+        isValidGymLeader(incoming()) &&
+        incoming().id == leaderId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(leaderId) &&
+        isVerifiedUser() &&
+        isValidGymLeader(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          // Action: Leader updates their gym open/battle/closed status
+          (isOwner(existing().ownerId) &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+        );
+      allow delete: if isValidId(leaderId) && isAdmin();
     }
-    
-    // Desafíos y Salas de Combate de Pokémon Champions
+
+    // Gym Challenges & Battle Rooms
     match /challenges/{challengeId} {
-      allow read: if true;
-      allow write: if true;
+      allow get: if isValidId(challengeId) && isVerifiedUser() && (
+        isOwner(existing().ownerId) ||
+        ('leaderOwnerId' in existing() && isOwner(existing().leaderOwnerId)) ||
+        isAdmin()
+      );
+      allow list: if isVerifiedUser() && (
+        resource.data.ownerId == request.auth.uid ||
+        ('leaderOwnerId' in resource.data && resource.data.leaderOwnerId == request.auth.uid) ||
+        isBootstrapAdmin()
+      );
+      allow create: if isValidId(challengeId) &&
+        isVerifiedUser() &&
+        isValidChallenge(incoming()) &&
+        incoming().id == challengeId &&
+        incoming().ownerId == request.auth.uid &&
+        !('leaderOwnerId' in incoming()) &&
+        !('badgeAwarded' in incoming()) &&
+        incoming().status == 'pendiente' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/trainers/$(incoming().trainerId)) &&
+        get(/databases/$(database)/documents/trainers/$(incoming().trainerId)).data.ownerId == request.auth.uid;
+      allow update: if isValidId(challengeId) &&
+        isVerifiedUser() &&
+        isValidChallenge(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().trainerId == existing().trainerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            // Terminal state lock for non-admins
+            !(existing().status in ['victoria_retador', 'victoria_lider', 'cancelado']) && (
+              // Action: Challenger sends battle chat message
+              (isOwner(existing().ownerId) &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['battleMessages', 'updatedAt'])) ||
+              // Action: Challenger cancels pending challenge
+              (isOwner(existing().ownerId) &&
+                existing().status == 'pendiente' &&
+                incoming().status == 'cancelado' &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+              // Action: Assigned gym leader sets room ID, chats, or resolves match
+              ('leaderOwnerId' in existing() &&
+                isOwner(existing().leaderOwnerId) &&
+                incoming().diff(existing()).affectedKeys().hasOnly([
+                  'pokemonChampionsRoomId', 'status', 'battleMessages',
+                  'battleNotes', 'badgeAwarded', 'updatedAt'
+                ]))
+            )
+          )
+        );
+      allow delete: if isValidId(challengeId) && isAdmin();
     }
-    
-    // Ajustes Generales de la Liga
+
+    // League Settings
     match /leagueSettings/{settingId} {
-      allow read: if true;
-      allow write: if true;
+      allow get: if isValidId(settingId) && isVerifiedUser() && (settingId == 'main' || isAdmin());
+      allow list: if isBootstrapAdmin();
+      allow create: if isValidId(settingId) &&
+        isAdmin() &&
+        isValidLeagueSettings(incoming()) &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(settingId) &&
+        isAdmin() &&
+        isValidLeagueSettings(incoming()) &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'leagueName', 'seasonTitle', 'primaryColor', 'accentColor',
+          'bannerTitle', 'announcementText', 'updatedAt'
+        ]);
+      allow delete: if isValidId(settingId) && isAdmin();
     }
   }
 }

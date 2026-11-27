@@ -6,6 +6,7 @@ export const PWAInstallButton: React.FC = () => {
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [installSuccess, setInstallSuccess] = useState(false);
+  const [showGenericGuide, setShowGenericGuide] = useState(false);
 
   // If already running as an installed PWA, render a subtle installed badge or nothing
   if (isInstalled) {
@@ -99,8 +100,6 @@ export const PWAInstallButton: React.FC = () => {
       </>
     );
   }
-
-  const [showGenericGuide, setShowGenericGuide] = useState(false);
 
   // Fallback direct button for browsers where prompt isn't fired yet
   return (

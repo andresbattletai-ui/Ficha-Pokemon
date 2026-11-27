@@ -15,7 +15,6 @@
     
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
 
     <!-- Open Graph -->
     <meta property="og:title" content="PokéCard Pass: Ficha de Entrenador Pokémon" />
@@ -30,6 +29,32 @@
   </head>
   <body class="bg-slate-950 text-slate-100 select-none antialiased">
     <div id="root"></div>
+    <script>
+      (function () {
+        var ROOT_ID = 'root';
+        var RETRY_KEY = 'pokecard_sw_recovery_v1';
+        window.setTimeout(function () {
+          var root = document.getElementById(ROOT_ID);
+          if (root && root.childElementCount === 0 && !sessionStorage.getItem(RETRY_KEY)) {
+            sessionStorage.setItem(RETRY_KEY, '1');
+            var clean = function () { window.location.reload(); };
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function (regs) {
+                return Promise.all(regs.map(function (r) { return r.unregister(); }));
+              }).then(function () {
+                if ('caches' in window) {
+                  return caches.keys().then(function (keys) {
+                    return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                  });
+                }
+              }).then(clean, clean);
+            } else {
+              clean();
+            }
+          }
+        }, 4000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

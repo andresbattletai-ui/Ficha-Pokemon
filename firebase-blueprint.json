@@ -1,0 +1,423 @@
+{
+  "entities": {
+    "UserPrivateProfile": {
+      "title": "UserPrivateProfile",
+      "description": "Private user account metadata isolated from public records.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "createdAt", "updatedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted league administrator authorization document.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "TrainerProfile": {
+      "title": "TrainerProfile",
+      "description": "Official certified Pokemon trainer card with bounded team and badges.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "inGameName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "trainerIdNumber": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "registrationDate": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "avatarUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "quote": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "theme": {
+          "type": "string",
+          "enum": ["cyan-league", "rocket-crimson", "kanto-classic", "cyber-emerald", "custom"],
+          "maxLength": 32
+        },
+        "isLocked": {
+          "type": "boolean"
+        },
+        "lockedAt": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "team": {
+          "type": "array",
+          "description": "Bounded array of up to 6 Pokemon members."
+        },
+        "gymBadges": {
+          "type": "array",
+          "description": "Bounded array of up to 8 gym badges."
+        },
+        "eliteFour": {
+          "type": "array",
+          "description": "Bounded array of up to 4 Elite Four insignias."
+        },
+        "champion": {
+          "type": "object"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "name",
+        "inGameName",
+        "trainerIdNumber",
+        "registrationDate",
+        "avatarUrl",
+        "region",
+        "theme",
+        "isLocked",
+        "team",
+        "gymBadges",
+        "eliteFour",
+        "champion",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GymLeaderPublic": {
+      "title": "GymLeaderPublic",
+      "description": "Public gym leader directory entry without private PIN or password.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "username": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "leaderName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "gymId": {
+          "type": "number"
+        },
+        "gymName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "city": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "elementalType": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "avatarUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "status": {
+          "type": "string",
+          "enum": ["abierto", "en_batalla", "cerrado"],
+          "maxLength": 20
+        },
+        "badgeName": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "badgeIcon": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "badgeColor": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "username",
+        "leaderName",
+        "gymId",
+        "gymName",
+        "city",
+        "elementalType",
+        "avatarUrl",
+        "status",
+        "badgeName",
+        "badgeIcon",
+        "badgeColor",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GymChallenge": {
+      "title": "GymChallenge",
+      "description": "Gym battle challenge between a trainer and a gym leader.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "leaderOwnerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "gymId": {
+          "type": "number"
+        },
+        "gymName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "gymLeaderName": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "leaderUsername": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "trainerId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "trainerName": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "trainerIgn": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "trainerAvatar": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "pokemonChampionsRoomId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pendiente", "aceptado", "en_combate", "victoria_retador", "victoria_lider", "cancelado"],
+          "maxLength": 32
+        },
+        "battleMessages": {
+          "type": "array",
+          "description": "Bounded battle chat messages (max 50)."
+        },
+        "battleNotes": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "badgeAwarded": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "gymId",
+        "gymName",
+        "gymLeaderName",
+        "leaderUsername",
+        "trainerId",
+        "trainerName",
+        "trainerIgn",
+        "trainerAvatar",
+        "status",
+        "battleMessages",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "LeagueSettings": {
+      "title": "LeagueSettings",
+      "description": "Public league display and announcement configuration.",
+      "type": "object",
+      "properties": {
+        "leagueName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "seasonTitle": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "primaryColor": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "accentColor": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "bannerTitle": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "announcementText": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "leagueName",
+        "seasonTitle",
+        "primaryColor",
+        "accentColor",
+        "bannerTitle",
+        "announcementText",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/private/{docId}": {
+      "schema": {
+        "$ref": "#/entities/UserPrivateProfile"
+      },
+      "description": "Private PII profile isolated per user."
+    },
+    "/admins/{adminId}": {
+      "schema": {
+        "$ref": "#/entities/AdminRecord"
+      },
+      "description": "Server-validated league super admin records."
+    },
+    "/trainers/{trainerId}": {
+      "schema": {
+        "$ref": "#/entities/TrainerProfile"
+      },
+      "description": "Official Pokemon trainer cards synced to Firestore."
+    },
+    "/gymLeaders/{leaderId}": {
+      "schema": {
+        "$ref": "#/entities/GymLeaderPublic"
+      },
+      "description": "Public gym leader directory profiles (no secret PINs)."
+    },
+    "/challenges/{challengeId}": {
+      "schema": {
+        "$ref": "#/entities/GymChallenge"
+      },
+      "description": "Official gym challenge rooms between trainers and gym leaders."
+    },
+    "/leagueSettings/{settingId}": {
+      "schema": {
+        "$ref": "#/entities/LeagueSettings"
+      },
+      "description": "Global league announcement and theme settings."
+    }
+  }
+}

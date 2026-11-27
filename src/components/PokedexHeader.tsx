@@ -1,6 +1,7 @@
 import React from 'react';
 import { TrainerProfile, CardTheme, GymLeaderAccount } from '../types/pokemon';
 import { PWAInstallButton } from './PWAInstallButton';
+import type { User } from 'firebase/auth';
 import {
   Volume2,
   VolumeX,
@@ -9,8 +10,9 @@ import {
   Crown,
   Swords,
   CreditCard,
-  MessageSquare,
   Users,
+  Cloud,
+  LogOut,
 } from 'lucide-react';
 
 interface Props {
@@ -27,6 +29,10 @@ interface Props {
   soundEnabled: boolean;
   onToggleSound: () => void;
   onChangeTheme: (theme: CardTheme) => void;
+  cloudEnabled?: boolean;
+  cloudUser?: User | null;
+  onSignInCloud?: () => void;
+  onSignOutCloud?: () => void;
 }
 
 export const PokedexHeader: React.FC<Props> = ({
@@ -43,6 +49,10 @@ export const PokedexHeader: React.FC<Props> = ({
   soundEnabled,
   onToggleSound,
   onChangeTheme,
+  cloudEnabled = false,
+  cloudUser = null,
+  onSignInCloud,
+  onSignOutCloud,
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full bg-slate-950/95 backdrop-blur-md border-b-2 border-red-700/60 shadow-xl">
@@ -106,7 +116,7 @@ export const PokedexHeader: React.FC<Props> = ({
 
             {/* Theme Selector */}
             <select
-              value={trainer.theme}
+              value={trainer?.theme || 'cyan-league'}
               onChange={(e) => onChangeTheme(e.target.value as CardTheme)}
               className="bg-slate-900 hover:bg-slate-850 border border-slate-700 text-xs font-tech text-slate-200 px-2.5 py-1.5 rounded-xl outline-none cursor-pointer hidden sm:block"
             >
@@ -127,7 +137,7 @@ export const PokedexHeader: React.FC<Props> = ({
               title="Panel individual para cada Líder de Gimnasio con contraseña propia"
             >
               <Shield className="w-3.5 h-3.5 text-red-300" />
-              <span>{activeLeader ? activeLeader.leaderName.split(' ')[1] : 'Portal Líder'}</span>
+              <span>{activeLeader ? (activeLeader.leaderName?.split(' ')[1] || activeLeader.leaderName || 'Líder') : 'Portal Líder'}</span>
             </button>
 
             {/* Super Admin Button */}
@@ -152,6 +162,30 @@ export const PokedexHeader: React.FC<Props> = ({
                 <VolumeX className="w-4 h-4 text-slate-500" />
               )}
             </button>
+
+            {/* Cloud Sync Button (shown when VITE_FIREBASE_* is configured) */}
+            {cloudEnabled && (
+              cloudUser ? (
+                <button
+                  onClick={onSignOutCloud}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 text-xs font-tech font-bold transition"
+                  title={`Conectado: ${cloudUser.email || 'Google'} (cerrar sesión)`}
+                >
+                  <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden md:inline">Nube Activa</span>
+                  <LogOut className="w-3 h-3 opacity-75" />
+                </button>
+              ) : (
+                <button
+                  onClick={onSignInCloud}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-sky-950/70 hover:bg-sky-900 border border-sky-500/40 text-sky-300 text-xs font-tech font-bold transition"
+                  title="Conectar con Google para guardar fichas en Firebase"
+                >
+                  <Cloud className="w-3.5 h-3.5 text-sky-400" />
+                  <span className="hidden md:inline">Sincronizar</span>
+                </button>
+              )
+            )}
 
             {/* PWA Install Button */}
             <PWAInstallButton />

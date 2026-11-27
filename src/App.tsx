@@ -22,6 +22,20 @@ import {
   getLeagueSettings,
   deleteTrainerProfile,
 } from './services/storageService';
+import {
+  auth,
+  isFirebaseConfigured,
+  signInWithGoogle,
+  signOutUser,
+} from './services/firebaseConfig';
+import {
+  deleteTrainerFromCloud,
+  subscribeUserTrainers,
+  syncChallengeToCloud,
+  syncTrainerToCloud,
+  syncUserPrivateProfile,
+} from './services/firestoreSync';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { sounds } from './utils/soundEffects';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { PokedexHeader } from './components/PokedexHeader';
@@ -33,7 +47,7 @@ import { SuperAdminModal } from './components/SuperAdminModal';
 import { BattleRoomModal } from './components/BattleRoomModal';
 import { TrainerRegistrationModal } from './components/TrainerRegistrationModal';
 import { ShareExportModal } from './components/ShareExportModal';
-import { Swords, CreditCard, Sparkles, Trophy, Shield, Gamepad2 } from 'lucide-react';
+import { Swords, CreditCard } from 'lucide-react';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState<'card' | 'gyms'>('card');
@@ -81,6 +95,8 @@ export default function App() {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [cloudUser, setCloudUser] = useState<User | null>(null);
+  const cloudEnabled = isFirebaseConfigured();
 
   const isOnline = useOnlineStatus();
   const leagueSettings = getLeagueSettings();
@@ -103,6 +119,39 @@ export default function App() {
     reloadData();
   }, []);
 
+  useEffect(() => {
+    if (!cloudEnabled || !auth) return;
+    let unsubTrainers: (() => void) | null = null;
+
+    const unsubAuth = onAuthStateChanged(auth, (user) => {
+      setCloudUser(user);
+      if (unsubTrainers) {
+        unsubTrainers();
+        unsubTrainers = null;
+      }
+      if (user && user.emailVerified) {
+        syncUserPrivateProfile(user).catch((err) => console.warn('Sync profile failed:', err));
+        unsubTrainers = subscribeUserTrainers(user, (cloudTrainers) => {
+          if (cloudTrainers.length > 0) {
+            setTrainers((prev) => {
+              const mergedMap = new Map<string, TrainerProfile>();
+              for (const t of prev) mergedMap.set(t.id, t);
+              for (const t of cloudTrainers) mergedMap.set(t.id, t);
+              const merged = Array.from(mergedMap.values());
+              saveProfiles(merged);
+              return merged;
+            });
+          }
+        });
+      }
+    });
+
+    return () => {
+      unsubAuth();
+      if (unsubTrainers) unsubTrainers();
+    };
+  }, [cloudEnabled]);
+
   const handleSelectTrainer = (id: string) => {
     setActiveProfileId(id);
     const found = trainers.find((t) => t.id === id);
@@ -117,6 +166,9 @@ export default function App() {
     const nextList = trainers.map((t) => (t.id === updated.id ? updated : t));
     setTrainers(nextList);
     saveProfiles(nextList);
+    if (cloudUser?.emailVerified) {
+      syncTrainerToCloud(updated).catch((err) => console.warn('Cloud trainer sync error:', err));
+    }
   };
 
   const handleRegisterTrainer = (newTrainer: TrainerProfile) => {
@@ -125,6 +177,9 @@ export default function App() {
     setActiveTrainer(newTrainer);
     setActiveProfileId(newTrainer.id);
     saveProfiles(nextList);
+    if (cloudUser?.emailVerified) {
+      syncTrainerToCloud(newTrainer).catch((err) => console.warn('Cloud trainer register error:', err));
+    }
   };
 
   const handleDeleteTrainer = (id: string) => {
@@ -132,6 +187,9 @@ export default function App() {
     setTrainers(remaining);
     setActiveTrainer(active);
     sounds.playBeep(450, 'sawtooth', 0.15);
+    if (cloudUser?.emailVerified) {
+      deleteTrainerFromCloud(id).catch((err) => console.warn('Cloud trainer delete error:', err));
+    }
   };
 
   const handleChangeTheme = (theme: CardTheme) => {
@@ -188,6 +246,14 @@ export default function App() {
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
         onChangeTheme={handleChangeTheme}
+        cloudEnabled={cloudEnabled}
+        cloudUser={cloudUser}
+        onSignInCloud={() => {
+          signInWithGoogle().catch((err) => console.warn('Google sign-in cancelled/failed:', err));
+        }}
+        onSignOutCloud={() => {
+          signOutUser().catch((err) => console.warn('Sign out failed:', err));
+        }}
       />
 
       {/* Main Content Area */}
@@ -244,6 +310,9 @@ export default function App() {
             onOpenBattleRoom={(chal) => setSelectedChallenge(chal)}
             onChallengeCreated={(chal) => {
               setChallenges((prev) => [chal, ...prev]);
+              if (cloudUser?.emailVerified) {
+                syncChallengeToCloud(chal).catch((err) => console.warn('Cloud challenge sync error:', err));
+              }
             }}
           />
         )}
@@ -270,6 +339,9 @@ export default function App() {
           setChallenges((prev) =>
             prev.map((c) => (c.id === updated.id ? updated : c))
           );
+          if (cloudUser?.emailVerified) {
+            syncChallengeToCloud(updated).catch((err) => console.warn('Cloud challenge update error:', err));
+          }
         }}
       />
 

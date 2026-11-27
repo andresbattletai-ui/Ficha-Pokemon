@@ -42,5 +42,7 @@ coverage/
 
 # AI Studio & PWA dev artifacts
 .aistudio/
+firebase-applet-config.json
+DRAFT_firestore.rules
 dev-dist/
 bun.lock

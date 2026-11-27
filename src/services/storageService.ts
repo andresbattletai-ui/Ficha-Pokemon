@@ -407,10 +407,16 @@ export function getStoredGymLeaders(): GymLeaderAccount[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.map((l, idx) => ({
-        ...l,
-        pin: l.pin || (l.password && /^\d{4}$/.test(l.password) ? l.password : String(1001 + idx)),
-      }));
+      return parsed
+        .filter((l) => l && typeof l === 'object')
+        .map((l, idx) => ({
+          ...l,
+          id: l.id || `leader-${idx + 1}`,
+          username: l.username || `lider${idx + 1}`,
+          leaderName: l.leaderName || `Líder ${idx + 1}`,
+          gymName: l.gymName || `Gimnasio ${idx + 1}`,
+          pin: l.pin || (l.password && /^\d{4}$/.test(l.password) ? l.password : String(1001 + idx)),
+        }));
     }
     return INITIAL_GYM_LEADERS;
   } catch {
@@ -429,7 +435,9 @@ export function saveGymLeaders(leaders: GymLeaderAccount[]) {
 export function getActiveLeaderSession(): GymLeaderAccount | null {
   try {
     const raw = localStorage.getItem(ACTIVE_LEADER_SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && parsed.id ? parsed : null;
   } catch {
     return null;
   }
@@ -477,7 +485,13 @@ export function getStoredChallenges(): GymChallenge[] {
       return INITIAL_CHALLENGES;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_CHALLENGES;
+    if (!Array.isArray(parsed)) return INITIAL_CHALLENGES;
+    return parsed
+      .filter((c) => c && typeof c === 'object' && c.id)
+      .map((c) => ({
+        ...c,
+        battleMessages: Array.isArray(c.battleMessages) ? c.battleMessages : [],
+      }));
   } catch {
     return INITIAL_CHALLENGES;
   }
